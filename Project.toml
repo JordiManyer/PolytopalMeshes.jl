@@ -1,0 +1,20 @@
+name = "GridapMeshes"
+uuid = "7891eb22-a1bc-406f-9dca-412f879e4291"
+authors = ["Jordi Manyer <jordi.manyer@monash.edu>"]
+version = "0.1.0"
+
+[deps]
+Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
+Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
+Gridap = "56d4f2e9-7ea1-5844-9cf6-b9c51ca7ce8e"
+GridapDistributed = "f9701e48-63b3-45aa-9a63-9bc6c271f355"
+Metis = "2679e427-3c69-5b7f-982b-ece356f1e94b"
+PartitionedArrays = "5a9dfac6-5c52-46f7-8278-5e2210713be9"
+
+[compat]
+Clustering = "0.15.8"
+Graphs = "1.13.1"
+Gridap = "0.19.4"
+GridapDistributed = "0.4.9"
+Metis = "1.5.0"
+PartitionedArrays = "0.3.5"
