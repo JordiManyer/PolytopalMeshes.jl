@@ -1,5 +1,5 @@
-name = "GridapMeshes"
-uuid = "7891eb22-a1bc-406f-9dca-412f879e4291"
+name = "PolytopalMeshes"
+uuid = "16aff1db-68ba-4890-971e-0cf7ffc16049"
 authors = ["Jordi Manyer <jordi.manyer@monash.edu>"]
 version = "0.1.0"
 

@@ -1,4 +1,4 @@
-module GridapMeshes
+module PolytopalMeshes
 
 using Gridap
 using PartitionedArrays
@@ -13,4 +13,4 @@ using Gridap.Adaptivity: AdaptedDiscreteModel, AdaptivityGlue
 
 
 
-end # module GridapMeshes
+end
