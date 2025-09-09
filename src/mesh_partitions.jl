@@ -16,7 +16,7 @@ end
 # Metis.jl
 
 function mesh_partition_metis(
-  model::DiscretModel, m;
+  model::DiscreteModel, m;
   alg = :RECURSIVE
 )
   topo = get_grid_topology(model)

@@ -27,5 +27,4 @@ Manifest*.toml
 LocalPreferences.toml
 JuliaLocalPreferences.toml
 
-# LLMs
-CLAUDE.md
+data/*

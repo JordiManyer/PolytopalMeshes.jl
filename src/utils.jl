@@ -44,7 +44,7 @@ function generate_model_by_patches(fmodel,ptopo)
 end
 
 function model_hierarchy_by_coarsening(
-  model, patch_cells::AbstractVector
+  model, patch_cells
 )
   nlevs = length(patch_cells) + 1
   models = Vector{Any}(undef,nlevs)

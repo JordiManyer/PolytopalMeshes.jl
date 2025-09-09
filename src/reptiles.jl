@@ -34,6 +34,9 @@ function reindex_connectivity(rr, gids)
   return lid_to_gid, child_to_lids.data
 end
 
+"""
+    reptile_refinement(model::DiscreteModel, rr)
+"""
 function reptile_refinement(model::DiscreteModel, rr)
   topo = get_grid_topology(model)
 
@@ -120,6 +123,9 @@ function reptile_cmap(::LReptileRefinement,rr)
   return l_reptile_cmap
 end
 
+"""
+    LReptileMeasure(trian::Triangulation, qdegree)
+"""
 LReptileMeasure(trian::Triangulation, qdegree) = Measure(trian,LReptileQuadrature(trian, qdegree))
 function LReptileMeasure(trian::DistributedTriangulation,qdegree)
   measures = map(local_views(trian)) do trian
@@ -135,7 +141,8 @@ function LReptileQuadrature(trian::Triangulation,args...;kwargs...)
 end
 
 """
-Quadrature rule for the L reptile polytope, made from 3 QUAD quadratures
+    LReptileQuadrature(p, args...; kwargs...)
+    LReptileQuadrature(trian::Triangulation, args...; kwargs...)
 """
 function LReptileQuadrature(p,args...; kwargs...)
   vertices = get_vertex_coordinates(p)
@@ -159,7 +166,7 @@ function LReptileQuadrature(p,args...; kwargs...)
 end
 
 """
-Base L reptile model, made from 2 L reptile polytopes.
+    LReptileModel()
 """
 function LReptileModel()
   function transform(x)
@@ -183,6 +190,10 @@ function LReptileModel()
   return model
 end
 
+"""
+    reptile_model_hierarchy(nl::Integer, l0::Integer)
+    reptile_model_hierarchy(ranks::AbstractArray, np::Integer, nl::Integer, l0::Integer)
+"""
 function reptile_model_hierarchy(args...)
   _, fmodel, pcells = reptile_refinement_hierarchy(args...)
   return model_hierarchy_by_coarsening(fmodel, pcells)

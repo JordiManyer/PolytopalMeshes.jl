@@ -1,12 +1,16 @@
 
 ############### zig-zag sub-domain boundary ####################
 
-function Geometry.voronoi(nc::Tuple,domain::Tuple)
+"""
+    voronoi(domain::Tuple, nc::Tuple)
+    voronoi(ranks::AbstractArray, np::Tuple, domain::Tuple, nc::Tuple)
+"""
+function Geometry.voronoi(domain::Tuple,nc::Tuple)
   base_model = simplexify(CartesianDiscreteModel(domain,nc))
   return Geometry.voronoi(base_model)
 end
 
-function Geometry.voronoi(ranks::AbstractArray,np::Tuple,nc::Tuple,domain::Tuple)
+function Geometry.voronoi(ranks::AbstractArray,np::Tuple,domain::Tuple,nc::Tuple)
   base_model = CartesianDiscreteModel(domain,nc)
   serial_model = Geometry.voronoi(base_model)
   partition = uniform_partition(ranks, np, nc .+ 1)
@@ -19,8 +23,11 @@ end
 
 ############### Smoother sub-domain boundary ####################
 
+"""
+    distributed_voronoi(ranks::AbstractArray, np::Tuple, domain::Tuple, nc::Tuple; refinement_method=:simplexify)
+"""
 function distributed_voronoi(
-  ranks::AbstractArray,np::Tuple,nc::Tuple,domain::Tuple; 
+  ranks::AbstractArray,np::Tuple,domain::Tuple,nc::Tuple; 
   refinement_method = :simplexify
 )
   _model = Gridap.Adaptivity.refine(UnstructuredDiscreteModel(CartesianDiscreteModel(domain,nc));refinement_method)

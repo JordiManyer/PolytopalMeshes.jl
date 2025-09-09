@@ -1,4 +1,7 @@
 
+"""
+    honeycomb_model(D::Integer, n::Integer, m::Integer=1)
+"""
 function honeycomb_model(D::Integer,n::Integer,m::Integer=1)
   @notimplementedif D != 2 "Honeycomb model is only implemented in 2D"
   step = 1 + 2*m

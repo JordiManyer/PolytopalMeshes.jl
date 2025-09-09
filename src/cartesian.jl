@@ -1,4 +1,7 @@
 
+"""
+    cartesian_model(D::Integer, n::Integer, m::Integer=1)
+"""
 function cartesian_model(D::Integer,n::Integer,m::Integer=1)
   step = 1 + 2*m
   N = step*n
@@ -10,14 +13,21 @@ function cartesian_model(D::Integer,n::Integer,m::Integer=1)
 
   domain = Tuple(repeat([0,1],D))
   fmodel = CartesianDiscreteModel(domain,Tuple(fill(N,D)))
-  ptopo = color_model_by_distance(fmodel, roots)
+  patch_cells = mesh_partition_by_distance(fmodel, roots)
+  ptopo = Geometry.PatchTopology(get_grid_topology(fmodel), patch_cells)
 
   return generate_model_by_patches(fmodel, ptopo)
 end
 
+"""
+    cartesian_model_hierarchy(nc::Tuple, nlevs::Integer)
+    cartesian_model_hierarchy(ranks::AbstractArray, np::Tuple, nc::Tuple, nlevs::Integer)
+"""
 function cartesian_model_hierarchy(nc::Tuple,nlevs::Integer)
   nf = nc .* (2 .^ (nlevs-1))
-  fmodel = CartesianDiscreteModel((0,1,0,1),nf)
+  fmodel = PolytopalDiscreteModel(
+    CartesianDiscreteModel((0,1,0,1),nf)
+  )
 
   pcells = Vector{Table}(undef,nlevs-1)
   for lev in 1:nlevs-1
@@ -29,7 +39,9 @@ end
 
 function cartesian_model_hierarchy(ranks::AbstractArray,np::Tuple,nc::Tuple,nlevs::Integer)
   nf = nc .* (2 .^ (nlevs-1))
-  fmodel = CartesianDiscreteModel(ranks,np,(0,1,0,1),nf)
+  fmodel = PolytopalDiscreteModel(
+    CartesianDiscreteModel(ranks,np,(0,1,0,1),nf)
+  )
 
   pcells = map(ranks) do rank
     pcells = Vector{Table}(undef,nlevs-1)
