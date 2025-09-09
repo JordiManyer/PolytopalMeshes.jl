@@ -1,16 +1,9 @@
 
-
-function Geometry.get_cell_map(model::Geometry.PolytopalDiscreteModel)
-  get_cell_map(get_grid(model))
-end
-
 abstract type ReptileRefinement <: Adaptivity.AdaptivityMethod end
 
 num_interior_nodes(rr::Adaptivity.RefinementRule) = num_interior_nodes(Adaptivity.RefinementRuleType(rr), rr)
 
 reptile_cmap(rr::Adaptivity.RefinementRule) = reptile_cmap(Adaptivity.RefinementRuleType(rr), rr)
-
-# RefRuleMap 
 
 struct RefRuleMap{A,B,C} <: Map
   rr   :: A
@@ -41,7 +34,7 @@ function reindex_connectivity(rr, gids)
   return lid_to_gid, child_to_lids.data
 end
 
-function reptile_refinement(model, rr)
+function reptile_refinement(model::DiscreteModel, rr)
   topo = get_grid_topology(model)
 
   p = get_polytope(rr)
@@ -141,6 +134,9 @@ function LReptileQuadrature(trian::Triangulation,args...;kwargs...)
   end
 end
 
+"""
+Quadrature rule for the L reptile polytope, made from 3 QUAD quadratures
+"""
 function LReptileQuadrature(p,args...; kwargs...)
   vertices = get_vertex_coordinates(p)
   pmin, pmax = ReferenceFEs.get_bounding_box(p)
@@ -151,9 +147,6 @@ function LReptileQuadrature(p,args...; kwargs...)
   corners = [pmin, pmin + dx, pmin + dy, pmax]
 
   has_corners = [!isnothing(findfirst(x -> norm(x - c) < 1e-8, vertices)) for c in corners]
-  # println("Corners: ", corners)
-  # println("Vertices: ", vertices)
-  # println("Has corners: ", has_corners)
   @assert sum(has_corners) == 3 "There should be exactly 3 corners in the L reptile polytope"
 
   center = (pmin + pmax) / 2.0
@@ -165,6 +158,9 @@ function LReptileQuadrature(p,args...; kwargs...)
   ReferenceFEs.PolytopalQuadrature(quad,conn,coords)
 end
 
+"""
+Base L reptile model, made from 2 L reptile polytopes.
+"""
 function LReptileModel()
   function transform(x)
     o = Point(0.5,0.5)
@@ -187,7 +183,12 @@ function LReptileModel()
   return model
 end
 
-function reptile_refinement_hierarchy(nl, l0)
+function reptile_model_hierarchy(args...)
+  _, fmodel, pcells = reptile_refinement_hierarchy(args...)
+  return model_hierarchy_by_coarsening(fmodel, pcells)
+end
+
+function reptile_refinement_hierarchy(nl::Integer, l0::Integer)
   base_model = LReptileModel()
   rr = LReptileRefinementRule()
 
@@ -209,59 +210,9 @@ function reptile_refinement_hierarchy(nl, l0)
   return cmodel, fmodel, pcells
 end
 
-function reptile_refinement_hierarchy(ranks, np, nl, l0)
+function reptile_refinement_hierarchy(ranks::AbstractArray, np::Integer, nl::Integer, l0::Integer)
   cmodel, fmodel, pcells = reptile_refinement_hierarchy(nl, l0)
-  
-  # Partition the coarse model
-  G = Geometry.compute_graph(get_grid_topology(cmodel), 2, 1)
-  cell_to_rank = Metis.partition(G, np, alg=:RECURSIVE)
-  cmodel = DiscreteModel(ranks,cmodel,cell_to_rank)
-
-  # Propagate ranks to the fine model
-  for lev in (nl-1):-1:1
-    patch_cells = pcells[lev]
-    n_fcells = maximum(patch_cells.data)
-    fcell_to_ccell = Arrays.flatten_partition(patch_cells, n_fcells)
-    cell_to_rank = cell_to_rank[fcell_to_ccell]
-  end
-
-  # Distribute finest model
-  fmodel = DiscreteModel(ranks,fmodel,cell_to_rank)
-
-  # Reindex and distribute patches down the hierarchy
-  dpcells = Vector{Any}(undef, nl-1)
-  own_fcell_gids = map(own_to_global, partition(get_cell_gids(fmodel)))
-  gid_to_lid = map(global_to_local, partition(get_cell_gids(fmodel)))
-  for lev in 1:nl-1
-    dpcells[lev], own_fcell_gids, gid_to_lid = map(own_fcell_gids, gid_to_lid) do own_fcell_gids, gid_to_lid
-      patch_cells = pcells[lev]
-      own_patches = findall(issubset(own_fcell_gids),patch_cells)
-      own_patch_gids = patch_cells[own_patches]
-      own_patch_lids = Table(map(Base.Fix1(getindex,gid_to_lid),own_patch_gids.data), own_patch_gids.ptrs)
-      return own_patch_lids, own_patches, Dict{Int,Int32}(( gid => lid for (lid, gid) in enumerate(own_patches)))
-    end |> tuple_of_arrays
-  end
-
-  return cmodel, fmodel, dpcells
-end
-
-function generate_reptile_model_hierarchy(args...)
-  cmodel, fmodel, pcells = GridapBDDC.reptile_refinement_hierarchy(args...)
-
-  # Coarsen all the way down
-  nl = length(pcells) + 1
-  mh = [fmodel]
-  glues = []
-  ptopos = []
-  for i in 1:nl-1
-    ptopo = PatchTopology(get_grid_topology(fmodel), pcells[i])
-    fmodel, glue = coarsen(fmodel, ptopo; return_glue=true)
-    push!(mh, fmodel)
-    push!(glues, glue)
-    push!(ptopos, ptopo)
-  end
-
-  return mh, ptopos, glues
+  return distribute_coarse_and_fine_models(ranks, np, cmodel, fmodel, pcells)
 end
 
 # Sphinx reptile 
@@ -290,13 +241,3 @@ function SphinxReptileRefinementRule()
   model = Geometry.PolytopalDiscreteModel(Geometry.PolytopalGrid(topo), topo, FaceLabeling(topo))
   return RefinementRule(SphinxReptileRefinement(),p,model)
 end
-
-# num_interior_nodes(::SphinxReptileRefinement,rr) =  4
-# 
-# function reptile_cmap(::SphinxReptileRefinement,rr)
-#   function sphinx_reptile_cmap(p)
-#     v = get_vertex_coordinates(p)
-#     affine_map((v[1],v[3],v[7],v[9],v[11],v[13]))
-#   end
-#   return sphinx_reptile_cmap
-# end

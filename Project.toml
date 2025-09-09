@@ -5,16 +5,28 @@ version = "0.1.0"
 
 [deps]
 Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
+FillArrays = "1a297f60-69ca-5386-bcde-b61e274b549b"
 Graphs = "86223c79-3864-5bf0-83f7-82e725a168b6"
 Gridap = "56d4f2e9-7ea1-5844-9cf6-b9c51ca7ce8e"
 GridapDistributed = "f9701e48-63b3-45aa-9a63-9bc6c271f355"
+LinearAlgebra = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
 Metis = "2679e427-3c69-5b7f-982b-ece356f1e94b"
 PartitionedArrays = "5a9dfac6-5c52-46f7-8278-5e2210713be9"
+SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
 
 [compat]
 Clustering = "0.15.8"
+FillArrays = "1.13.0"
 Graphs = "1.13.1"
 Gridap = "0.19.4"
 GridapDistributed = "0.4.9"
 Metis = "1.5.0"
 PartitionedArrays = "0.3.5"
+julia = "1.8"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]

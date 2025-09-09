@@ -4,13 +4,36 @@ using Gridap
 using PartitionedArrays
 using GridapDistributed
 
+using Clustering, Metis
+using LinearAlgebra, SparseArrays, FillArrays, Statistics
+
 using Gridap.Geometry, Gridap.Adaptivity
 using Gridap.ReferenceFEs, Gridap.Arrays
+using Gridap.CellData, Gridap.Fields
 
+using Gridap.ReferenceFEs: GeneralPolytope, Polygon, Polyhedron
 using Gridap.Geometry: PolytopalDiscreteModel, PolytopalGrid, PolytopalGridTopology
 using Gridap.Geometry: PatchTopology, PatchTriangulation
 using Gridap.Adaptivity: AdaptedDiscreteModel, AdaptivityGlue
 
+using GridapDistributed: DistributedDiscreteModel, DistributedTriangulation
 
+
+include("utils.jl")
+
+export cartesian_model, cartesian_model_hierarchy
+include("cartesian.jl")
+
+export honeycomb_model
+include("honeycomb.jl")
+
+export voronoi
+include("voronoi.jl")
+
+export LReptileQuadrature, LReptileMeasure, LReptileModel
+export reptile_model_hierarchy, reptile_refinement
+include("reptiles.jl")
+
+include("mesh_partitions.jl")
 
 end

@@ -1,4 +1,33 @@
 
+# Distance from roots
+
+function mesh_partition_by_distance(
+  model::DiscreteModel, roots::Vector{<:Integer}
+)
+  cell_color = zeros(Int32, num_cells(model))
+  cell_centroids = get_cell_centroids(model)
+  for c in eachindex(cell_color)
+    centroid = cell_centroids[c]
+    _, cell_color[c] = findmin(a -> norm(centroid - cell_centroids[a]), roots)
+  end
+  return Arrays.inverse_table(cell_color, length(roots))
+end
+
+# Metis.jl
+
+function mesh_partition_metis(
+  model::DiscretModel, m;
+  alg = :RECURSIVE
+)
+  topo = get_grid_topology(model)
+  D = num_cell_dims(model)
+  G = Geometry.compute_graph(topo, D, D-1)
+  partition = Metis.partition(G, m; alg)
+  return Arrays.inverse_table(partition, m)
+end
+
+# Clustering.jl
+
 function mesh_partition_hierarchical(
   model::DiscreteModel, m; 
   points = get_cell_centroids(model), 
@@ -10,7 +39,8 @@ function mesh_partition_hierarchical(
   return Arrays.inverse_table(cutree(H; k = m), m)
 end
 
-function mesh_partition_kmeans(model::DiscreteModel, m; 
+function mesh_partition_kmeans(
+  model::DiscreteModel, m; 
   points = get_cell_centroids(model),
   init = :kmpp, weights = nothing, 
   maxiter=100, display=:iter
@@ -20,10 +50,11 @@ function mesh_partition_kmeans(model::DiscreteModel, m;
   end
   X = reduce(hcat, lazy_map(get_array, points))
   R = kmeans(X, m; init, weights, maxiter, display)
-  Arrays.inverse_table(assignments(R),m)
+  return Arrays.inverse_table(assignments(R),m)
 end
 
-function mesh_partition_kmedoid(model::DiscreteModel, m; 
+function mesh_partition_kmedoid(
+  model::DiscreteModel, m; 
   points = get_cell_centroids(model),
   dist = (u,v) -> sqrt((u-v) ⋅ (u-v)),
   init = :kmpp, 
@@ -31,47 +62,5 @@ function mesh_partition_kmedoid(model::DiscreteModel, m;
 )
   M = DistanceMatrix(points, dist)
   R = kmedoids(M, m; init, maxiter, display)
-  Arrays.inverse_table(assignments(R),m)
-end
-
-# Helpers
-
-struct DistanceMatrix{T,A,B} <: AbstractMatrix{T}
-  points::A
-  distance::B
-  function DistanceMatrix(points, distance)
-    T = typeof(distance(first(points), first(points)))
-    A, B = typeof(points), typeof(distance)
-    return new{T,A,B}(points, distance)
-  end
-end
-
-Base.size(a::DistanceMatrix) = (length(a.points), length(a.points))
-Base.getindex(a::DistanceMatrix, i, j) = a.distance(a.points[i], a.points[j])
-Base.getindex(a::DistanceMatrix, ::Colon, j) = [getindex(a, i, j) for i in 1:size(a, 1)]
-Base.getindex(a::DistanceMatrix, i, ::Colon) = [getindex(a, i, j) for j in 1:size(a, 2)]
-Base.getindex(a::DistanceMatrix, ::Colon, ::Colon) = [getindex(a, i, j) for i in 1:size(a, 1), j in 1:size(a, 2)]
-
-function ReferenceFEs.get_bounding_box(model::DiscreteModel)
-  coords = Geometry.get_node_coordinates(model)
-  pmin, pmax = first(coords), first(coords)
-  for p in coords
-    pmin = min.(pmin, p)
-    pmax = max.(pmax, p)
-  end
-  return pmin, pmax
-end
-
-function get_cell_centroids(model)
-  cell_polys = Geometry.get_cell_polytopes(model)
-  return map(mean ∘ get_vertex_coordinates, cell_polys)
-end
-
-function get_bbox_centroids(model)
-  cell_polys = Geometry.get_cell_polytopes(model)
-  function centroid(p)
-    pmin, pmax = ReferenceFEs.get_bounding_box(p)
-    return (pmin + pmax) / 2
-  end
-  return map(centroid, cell_polys)
+  return Arrays.inverse_table(assignments(R),m)
 end

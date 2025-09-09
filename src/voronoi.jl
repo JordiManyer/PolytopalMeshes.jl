@@ -1,10 +1,17 @@
 
 ############### zig-zag sub-domain boundary ####################
 
-function distributed_voronoi(ranks,np,nc,domain)
-  serial_model = Geometry.voronoi(simplexify(CartesianDiscreteModel(domain,nc)))
+function Geometry.voronoi(nc::Tuple,domain::Tuple)
+  base_model = simplexify(CartesianDiscreteModel(domain,nc))
+  return Geometry.voronoi(base_model)
+end
+
+function Geometry.voronoi(ranks::AbstractArray,np::Tuple,nc::Tuple,domain::Tuple)
+  base_model = CartesianDiscreteModel(domain,nc)
+  serial_model = Geometry.voronoi(base_model)
+  partition = uniform_partition(ranks, np, nc .+ 1)
   cell_to_rank = zeros(Int,num_cells(serial_model))
-  for (r,cells) in enumerate(uniform_partition(1:prod(np),np,nc .+ 1))
+  for (r,cells) in enumerate(partition)
     cell_to_rank[cells] .= r
   end
   return DiscreteModel(ranks,serial_model,cell_to_rank)
@@ -12,27 +19,10 @@ end
 
 ############### Smoother sub-domain boundary ####################
 
-function get_voronoi_face_to_cell_glue(model)
-  topo = get_grid_topology(model)
-  Dc = num_cell_dims(topo)
-
-  is_bnode = Geometry.get_isboundary_face(topo,0)
-  is_bface = Geometry.get_isboundary_face(topo,Dc-1)
-  bnodes = findall(is_bnode)
-  bfaces = findall(is_bface)
-  node_reindex = Gridap.Arrays.find_inverse_index_map(bnodes,num_faces(topo,0))
-  face_reindex = Gridap.Arrays.find_inverse_index_map(bfaces,num_faces(topo,Dc-1))
-
-  node_to_face = vcat(1:num_cells(topo),bfaces,bnodes)
-  node_to_dim = vcat(fill(Dc,num_cells(topo)), fill(Dc-1,length(bfaces)), fill(0,length(bnodes)))
-  face_offset = num_cells(topo) - 1
-  node_offset = face_offset + length(bfaces) - 1
-  d_to_face_to_node = [collect(1:num_cells(topo)), face_reindex .+ face_offset, node_reindex .+ node_offset]
-
-  return node_to_face, node_to_dim, d_to_face_to_node
-end
-
-function distributed_voronoi(ranks,np,nc,domain,refinement_method)
+function distributed_voronoi(
+  ranks::AbstractArray,np::Tuple,nc::Tuple,domain::Tuple; 
+  refinement_method = :simplexify
+)
   _model = Gridap.Adaptivity.refine(UnstructuredDiscreteModel(CartesianDiscreteModel(domain,nc));refinement_method)
   glue = Gridap.Adaptivity.get_adaptivity_glue(_model)
   model = Gridap.Adaptivity.get_model(_model)
@@ -95,4 +85,23 @@ function distributed_voronoi(ranks,np,nc,domain,refinement_method)
   new_dmodel = DiscreteModel(ranks,new_model,new_cell_to_rank)
   return new_dmodel
 end
-  
+
+function get_voronoi_face_to_cell_glue(model)
+  topo = get_grid_topology(model)
+  Dc = num_cell_dims(topo)
+
+  is_bnode = Geometry.get_isboundary_face(topo,0)
+  is_bface = Geometry.get_isboundary_face(topo,Dc-1)
+  bnodes = findall(is_bnode)
+  bfaces = findall(is_bface)
+  node_reindex = Gridap.Arrays.find_inverse_index_map(bnodes,num_faces(topo,0))
+  face_reindex = Gridap.Arrays.find_inverse_index_map(bfaces,num_faces(topo,Dc-1))
+
+  node_to_face = vcat(1:num_cells(topo),bfaces,bnodes)
+  node_to_dim = vcat(fill(Dc,num_cells(topo)), fill(Dc-1,length(bfaces)), fill(0,length(bnodes)))
+  face_offset = num_cells(topo) - 1
+  node_offset = face_offset + length(bfaces) - 1
+  d_to_face_to_node = [collect(1:num_cells(topo)), face_reindex .+ face_offset, node_reindex .+ node_offset]
+
+  return node_to_face, node_to_dim, d_to_face_to_node
+end
