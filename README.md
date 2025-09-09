@@ -1,2 +1,3 @@
-# GridapMeshes.jl
-Collection of mesh constructors for Gridap.jl
+# PolytopalMeshes.jl
+
+Collection of polytopal mesh constructors for Gridap.jl
