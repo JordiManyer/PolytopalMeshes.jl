@@ -1,12 +1,24 @@
 
 """
-    honeycomb_model(D::Integer, n::Integer, m::Integer=1)
+    honeycomb_model(D::Integer, n::Integer, m::Integer=2)
 """
-function honeycomb_model(D::Integer,n::Integer,m::Integer=1)
+function honeycomb_model(D::Integer,n::Integer,m::Integer=2)
   @notimplementedif D != 2 "Honeycomb model is only implemented in 2D"
-  step = 1 + 2*m
-  N = step*n
+  N = (1 + 2*m)*n
+  fmodel = PolytopalDiscreteModel(
+    CartesianDiscreteModel(Tuple(repeat([0,1],D)),Tuple(fill(N,D)))
+  )
+  roots = honeycomb_roots_2d(N,n,m)
+  ptopo = Geometry.PatchTopology(
+    get_grid_topology(fmodel), mesh_partition_by_distance(fmodel, roots)
+  )
+  cmodel = Adaptivity.coarsen(fmodel, ptopo)
+  return cmodel, ptopo
+end
 
+function honeycomb_roots_2d(N::Integer, n::Integer, m::Integer=2)
+  step = 1 + 2*m
+  
   roots = Int[]
   fids = LinearIndices((N,N))
   for i in 1:n
@@ -26,13 +38,4 @@ function honeycomb_model(D::Integer,n::Integer,m::Integer=1)
     end
   end
   sort!(roots)
-
-  fmodel = PolytopalDiscreteModel(
-    CartesianDiscreteModel(Tuple(repeat([0,1],D)),Tuple(fill(N,D)))
-  )
-  ptopo = Geometry.PatchTopology(
-    get_grid_topology(fmodel), mesh_partition_by_distance(fmodel, roots)
-  )
-  cmodel = Adaptivity.coarsen(fmodel, ptopo)
-  return cmodel, ptopo
 end

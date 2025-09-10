@@ -35,8 +35,9 @@ export LReptileQuadrature, LReptileMeasure, LReptileModel
 export reptile_model_hierarchy, reptile_refinement
 include("reptiles.jl")
 
-export mesh_partition_hierarchical, mesh_partition_kmedoid, mesh_partition_kmeans
-export mesh_partition_metis
-include("mesh_partitions.jl")
+export clustering_model
+export mesh_partition_kmedoid, mesh_partition_kmeans
+export mesh_partition_metis, mesh_partition_hierarchical
+include("clustering.jl")
 
 end

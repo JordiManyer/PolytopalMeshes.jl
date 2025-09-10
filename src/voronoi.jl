@@ -11,7 +11,7 @@ function Geometry.voronoi(domain::Tuple,nc::Tuple)
 end
 
 function Geometry.voronoi(ranks::AbstractArray,np::Tuple,domain::Tuple,nc::Tuple)
-  base_model = CartesianDiscreteModel(domain,nc)
+  base_model = simplexify(CartesianDiscreteModel(domain,nc))
   serial_model = Geometry.voronoi(base_model)
   partition = uniform_partition(ranks, np, nc .+ 1)
   cell_to_rank = zeros(Int,num_cells(serial_model))

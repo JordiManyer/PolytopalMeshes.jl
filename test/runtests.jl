@@ -18,6 +18,6 @@ end
   include("test_reptiles.jl")
 end
 
-@testset "Mesh Partitions" begin
-  include("test_mesh_partitions.jl")
+@testset "Clustering" begin
+  include("test_clustering.jl")
 end
