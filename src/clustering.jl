@@ -1,9 +1,34 @@
 
-function clustering_model(fmodel::Union{DiscreteModel,DistributedDiscreteModel}, m; method = :metis, kwargs...)
-  patch_cells = mesh_partition_clustering(fmodel, m; method, kwargs...)
+"""
+    clustering_model(model::DiscreteModel, θ::Real; method = :metis, kwargs...)
+    clustering_model(model::DiscreteModel, m::Integer; method = :metis, kwargs...)
+
+Available methods: :metis, :hierarchical, :kmeans, :kmedoid
+"""
+function clustering_model(fmodel, args...; kwargs...)
+  patch_cells = mesh_partition_clustering(fmodel, args...; kwargs...)
   ptopo  = Geometry.PatchTopology(get_grid_topology(fmodel), patch_cells)
   cmodel = Adaptivity.coarsen(fmodel, ptopo)
   return cmodel, ptopo
+end
+
+function mesh_partition_clustering(model::DiscreteModel, θ::Real; kwargs...)
+  @assert 0 < θ < 1 "θ must be in (0,1)"
+  D = num_cell_dims(model)
+  n = num_cells(model) ^ (1/D)
+  m = (ceil(Int, n*θ))^D
+  return mesh_partition_clustering(model, m; kwargs...)
+end
+
+function mesh_partition_clustering(model::DistributedDiscreteModel, θ::Real; kwargs...)
+  @assert 0 < θ < 1 "θ must be in (0,1)"
+  gids = get_cell_gids(model)
+  m = map(partition(gids)) do gids
+    D = num_cell_dims(model)
+    n = own_length(gids) ^ (1/D)
+    return (ceil(Int, n*θ))^D
+  end
+  return mesh_partition_clustering(model, m; kwargs...)
 end
 
 function mesh_partition_clustering(model::DiscreteModel, m::Integer; method = :metis, kwargs...)
