@@ -35,14 +35,6 @@ end
 
 # Model generation
 
-function generate_model_by_patches(fmodel,ptopo)
-  pfmodel = Geometry.PolytopalDiscreteModel(fmodel)
-  pftopo = get_grid_topology(pfmodel)
-  pptopo = Geometry.PatchTopology(pftopo, Geometry.get_patch_cells(ptopo))
-  cmodel = Adaptivity.coarsen(pfmodel, pptopo)
-  return cmodel, ptopo
-end
-
 function model_hierarchy_by_coarsening(
   model, patch_cells
 )

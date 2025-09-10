@@ -27,8 +27,12 @@ function honeycomb_model(D::Integer,n::Integer,m::Integer=1)
   end
   sort!(roots)
 
-  fmodel = CartesianDiscreteModel(Tuple(repeat([0,1],D)),Tuple(fill(N,D)))
-  ftopo = get_grid_topology(fmodel)
-  ptopo = Geometry.PatchTopology(ftopo, mesh_partition_by_distance(fmodel, roots))
-  return generate_model_by_patches(fmodel, ptopo)
+  fmodel = PolytopalDiscreteModel(
+    CartesianDiscreteModel(Tuple(repeat([0,1],D)),Tuple(fill(N,D)))
+  )
+  ptopo = Geometry.PatchTopology(
+    get_grid_topology(fmodel), mesh_partition_by_distance(fmodel, roots)
+  )
+  cmodel = Adaptivity.coarsen(fmodel, ptopo)
+  return cmodel, ptopo
 end
