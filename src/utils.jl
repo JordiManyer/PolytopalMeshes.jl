@@ -35,6 +35,13 @@ end
 
 # Model generation
 
+function convert_and_coarsen(model,ptopo)
+  pmodel = PolytopalDiscreteModel(model)
+  return Adaptivity.coarsen(
+    pmodel, PatchTopology(get_grid_topology(pmodel), get_patch_cells(ptopo))
+  )
+end
+
 function model_hierarchy_by_coarsening(
   model, patch_cells
 )

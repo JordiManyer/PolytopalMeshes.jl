@@ -13,7 +13,7 @@ end
 function Geometry.voronoi(ranks::AbstractArray,np::Tuple,domain::Tuple,nc::Tuple)
   base_model = simplexify(CartesianDiscreteModel(domain,nc))
   serial_model = Geometry.voronoi(base_model)
-  partition = uniform_partition(ranks, np, nc .+ 1)
+  partition = uniform_partition(collect(1:prod(np)), np, nc .+ 1)
   cell_to_rank = zeros(Int,num_cells(serial_model))
   for (r,cells) in enumerate(partition)
     cell_to_rank[cells] .= r

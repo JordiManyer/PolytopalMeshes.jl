@@ -199,6 +199,11 @@ function reptile_model_hierarchy(args...)
   return model_hierarchy_by_coarsening(fmodel, pcells)
 end
 
+function reptile_model(args...)
+  cmodel, fmodel, pcells = reptile_refinement_hierarchy(args..., 0)
+  return fmodel
+end
+
 function reptile_refinement_hierarchy(nl::Integer, l0::Integer)
   base_model = LReptileModel()
   rr = LReptileRefinementRule()

@@ -8,7 +8,7 @@ Available methods: :metis, :hierarchical, :kmeans, :kmedoid
 function clustering_model(fmodel, args...; kwargs...)
   patch_cells = mesh_partition_clustering(fmodel, args...; kwargs...)
   ptopo  = Geometry.PatchTopology(get_grid_topology(fmodel), patch_cells)
-  cmodel = Adaptivity.coarsen(fmodel, ptopo)
+  cmodel = convert_and_coarsen(fmodel, ptopo)
   return cmodel, ptopo
 end
 

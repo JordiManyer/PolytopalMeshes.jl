@@ -1,68 +1,68 @@
 
 """
-    cartesian_model(D::Integer, n::Integer, m::Integer=2)
-    cartesian_model(ranks::AbstractArray, np::Tuple, n::Integer, m::Integer=2)
+    cartesian_model(domain::Tuple, nc::Tuple, m::Integer=2)
+    cartesian_model(ranks::AbstractArray, np::Tuple, domain::Tuple, nc::Tuple, m::Integer=2)
 """
-function cartesian_model(D::Integer, n::Integer, m::Integer=2)
-  nc = ntuple(_ -> n, D)
+function cartesian_model(domain::Tuple, nc::Tuple, m::Integer=2)
   nf = nc .* m
   fmodel = PolytopalDiscreteModel(
-    CartesianDiscreteModel((0,1,0,1),nf)
+    CartesianDiscreteModel(domain,nf)
   )
   ptopo = Geometry.PatchTopology(
     get_grid_topology(fmodel), mesh_partition_cartesian(nc, m)
   )
-  cmodel = Adaptivity.coarsen(fmodel, ptopo)
+  cmodel = convert_and_coarsen(fmodel, ptopo)
   return cmodel, ptopo
 end
 
-function cartesian_model(ranks::AbstractArray, np::Tuple, D::Integer, n::Integer, m::Integer=2)
-  nc = ntuple(_ -> n, D)
+function cartesian_model(ranks::AbstractArray, np::Tuple, domain::Tuple, nc::Tuple, m::Integer=2)
   nf = nc .* m
-  fmodel = PolytopalDiscreteModel(
-    CartesianDiscreteModel(ranks,np,(0,1,0,1),nf)
-  )
+  fmodel = CartesianDiscreteModel(ranks,np,domain,nf)
   ptopo = Geometry.PatchTopology(
     get_grid_topology(fmodel), mesh_partition_cartesian(ranks, np, nc, m)
   )
-  cmodel = Adaptivity.coarsen(fmodel, ptopo)
+  cmodel = convert_and_coarsen(fmodel, ptopo)
   return cmodel, ptopo
 end
 
 """
-    cartesian_model_hierarchy(nc::Tuple, nlevs::Integer)
-    cartesian_model_hierarchy(ranks::AbstractArray, np::Tuple, nc::Tuple, nlevs::Integer)
+    cartesian_model_hierarchy(domain::Tuple, nc::Tuple, nlevs::Integer)
+    cartesian_model_hierarchy(ranks::AbstractArray, np::Tuple, domain::Tuple, nc::Tuple, nlevs::Integer)
 """
-function cartesian_model_hierarchy(nc::Tuple,nlevs::Integer,m::Integer=2)
+function cartesian_model_hierarchy(domain::Tuple,nc::Tuple,nlevs::Integer,m::Integer=2)
   nf = nc
   pcells = Vector{Table}(undef,nlevs-1)
   for lev in nlevs-1:-1:1
     pcells[lev] = mesh_partition_cartesian(nf,m)
-    nf .*= m
+    nf = nf .* m
   end
-  @assert nf .== nc .* (m .^ (nlevs-1))
+  @assert nf == nc .* (m .^ (nlevs-1))
 
   fmodel = PolytopalDiscreteModel(
-    CartesianDiscreteModel((0,1,0,1),nf)
+    CartesianDiscreteModel(domain,nf)
   )
   return model_hierarchy_by_coarsening(fmodel, pcells)
 end
 
-function cartesian_model_hierarchy(ranks::AbstractArray,np::Tuple,nc::Tuple,nlevs::Integer,m::Integer=2)
+function cartesian_model_hierarchy(ranks::AbstractArray,np::Tuple,domain::Tuple,nc::Tuple,nlevs::Integer,m::Integer=2)
+  nf = nc .* (m .^ (nlevs-1))
+
   pcells = map(ranks) do rank
-    nf = nc
     pcells = Vector{Table}(undef,nlevs-1)
+
+    nc = nf .÷ m
+    pcells[1] = mesh_partition_cartesian(rank,np,nc,m)
+    
+    nc = local_n(rank,np,nc)
     for lev in nlevs-1:-1:2
-      pcells[lev] = mesh_partition_cartesian(nf,m)
-      nf .*= m
+      nc = nc .÷ m
+      pcells[lev] = mesh_partition_cartesian(nc,m)
     end
-    pcells[1] = mesh_partition_cartesian(rank,np,nf,m)
     return Tuple(pcells)
   end |> tuple_of_arrays
-
-  nf = nc .* (m .^ (nlevs-1))
+  
   fmodel = PolytopalDiscreteModel(
-    CartesianDiscreteModel(ranks,np,(0,1,0,1),nf)
+    CartesianDiscreteModel(ranks,np,domain,nf)
   )
   return model_hierarchy_by_coarsening(fmodel, pcells)
 end
@@ -107,4 +107,9 @@ function mesh_partition_cartesian(rank::Integer,np::Tuple,nc::Tuple,m::Integer=2
   ids = PartitionedArrays.block_with_constant_size(rank,np,nf,map(i -> true, nf))
   patch_cells = Table(own_to_local(ids)[patch_own_cells.data],patch_own_cells.ptrs)
   return patch_cells
+end
+
+function local_n(rank::Integer,np::Tuple,nc::Tuple)
+  p = Tuple(CartesianIndices(np)[rank])
+  map(length ∘ PartitionedArrays.local_range,p,np,nc)
 end

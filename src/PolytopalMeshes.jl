@@ -15,6 +15,7 @@ using Gridap.Helpers
 using Gridap.ReferenceFEs: GeneralPolytope, Polygon, Polyhedron
 using Gridap.Geometry: PolytopalDiscreteModel, PolytopalGrid, PolytopalGridTopology
 using Gridap.Geometry: PatchTopology, PatchTriangulation
+using Gridap.Geometry: get_patch_cells
 using Gridap.Adaptivity: AdaptedDiscreteModel, AdaptivityGlue, coarsen
 
 using GridapDistributed: DistributedDiscreteModel, DistributedTriangulation
