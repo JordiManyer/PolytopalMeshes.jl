@@ -1,22 +1,4 @@
 
-# Distance Matrix
-
-struct DistanceMatrix{T,A,B} <: AbstractMatrix{T}
-  points::A
-  distance::B
-  function DistanceMatrix(points, distance)
-    T = typeof(distance(first(points), first(points)))
-    A, B = typeof(points), typeof(distance)
-    return new{T,A,B}(points, distance)
-  end
-end
-
-Base.size(a::DistanceMatrix) = (length(a.points), length(a.points))
-Base.getindex(a::DistanceMatrix, i, j) = a.distance(a.points[i], a.points[j])
-Base.getindex(a::DistanceMatrix, ::Colon, j) = [getindex(a, i, j) for i in 1:size(a, 1)]
-Base.getindex(a::DistanceMatrix, i, ::Colon) = [getindex(a, i, j) for j in 1:size(a, 2)]
-Base.getindex(a::DistanceMatrix, ::Colon, ::Colon) = [getindex(a, i, j) for i in 1:size(a, 1), j in 1:size(a, 2)]
-
 # Bounding box and centroids
 
 function ReferenceFEs.get_bounding_box(model::DiscreteModel)

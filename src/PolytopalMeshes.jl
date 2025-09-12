@@ -4,7 +4,9 @@ using Gridap
 using PartitionedArrays
 using GridapDistributed
 
+using DataStructures
 using Clustering, Metis
+using Graphs, SimpleWeightedGraphs
 using LinearAlgebra, SparseArrays, FillArrays, Statistics
 
 using Gridap.Geometry, Gridap.Adaptivity
@@ -20,12 +22,15 @@ using Gridap.Adaptivity: AdaptedDiscreteModel, AdaptivityGlue, coarsen
 
 using GridapDistributed: DistributedDiscreteModel, DistributedTriangulation
 
+
 include("utils.jl")
+include("distances.jl")
 
 export cartesian_model, cartesian_model_hierarchy
 include("cartesian.jl")
 
 export honeycomb_model
+export mesh_partition_by_distance
 include("honeycomb.jl")
 
 import Gridap.Geometry: voronoi

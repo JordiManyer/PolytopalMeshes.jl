@@ -61,4 +61,8 @@ cmodel, ptopo = clustering_model(fmodel, θ; method = :metis)
 cmodel, ptopo = clustering_model(d_fmodel, θ; method = :metis)
 writevtk(Triangulation(ReferenceFE{1},cmodel), "data/clustering_metis")
 
+# Distance clustering
+
+
+
 end # module
