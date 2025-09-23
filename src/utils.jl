@@ -79,4 +79,3 @@ function distribute_coarse_and_fine_models(
 
   return cmodel, fmodel, dpcells
 end
-

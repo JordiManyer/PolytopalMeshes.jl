@@ -44,6 +44,7 @@ include("reptiles.jl")
 export clustering_model
 export mesh_partition_kmedoid, mesh_partition_kmeans
 export mesh_partition_metis, mesh_partition_hierarchical
+export clustering_model_hierarchy
 include("clustering.jl")
 
 end

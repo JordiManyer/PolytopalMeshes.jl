@@ -61,8 +61,18 @@ cmodel, ptopo = clustering_model(fmodel, θ; method = :metis)
 cmodel, ptopo = clustering_model(d_fmodel, θ; method = :metis)
 writevtk(Triangulation(ReferenceFE{1},cmodel), "data/clustering_metis")
 
-# Distance clustering
+# Model hierarchy by clustering
 
+nlevs = 3
 
+models, ptopos, glues = clustering_model_hierarchy(fmodel, nlevs, θ; method = :metis)
+for (i,model) in enumerate(models)
+  writevtk(Triangulation(ReferenceFE{1},model), "data/clustering_mh_$(i)")
+end
+
+dmodels, ptopos, glues = clustering_model_hierarchy(d_fmodel, nlevs, θ; method = :hierarchical)
+for (i,dmodel) in enumerate(dmodels)
+  writevtk(Triangulation(ReferenceFE{1},dmodel), "data/clustering_mh_$(i)")
+end
 
 end # module

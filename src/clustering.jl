@@ -12,6 +12,22 @@ function clustering_model(fmodel, args...; kwargs...)
   return cmodel, ptopo
 end
 
+function clustering_model_hierarchy(fmodel, nlevs::Integer, θ::Real; kwargs...)
+  models = Vector{Any}(undef,nlevs)
+  glues  = Vector{Any}(undef,nlevs-1)
+  ptopos = Vector{Any}(undef,nlevs-1)
+  models[1] = PolytopalDiscreteModel(fmodel)
+  for lev in 1:nlevs-1
+    patch_cells = mesh_partition_clustering(models[lev], θ; kwargs...)
+    ptopos[lev] = PatchTopology(get_grid_topology(models[lev]), patch_cells)
+    models[lev+1], glues[lev] = coarsen(models[lev], ptopos[lev]; return_glue=true)
+  end
+  models = [x for x in models]
+  glues  = [x for x in glues]
+  ptopos = [x for x in ptopos]
+  return models, ptopos, glues
+end
+
 function mesh_partition_clustering(model::DiscreteModel, θ::Real; kwargs...)
   @assert 0 < θ < 1 "θ must be in (0,1)"
   D = num_cell_dims(model)
