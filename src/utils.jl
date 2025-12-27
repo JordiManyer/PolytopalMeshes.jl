@@ -79,3 +79,26 @@ function distribute_coarse_and_fine_models(
 
   return cmodel, fmodel, dpcells
 end
+
+# Reorder local cells so that owned cells come first
+function reorder_model(model::DistributedDiscreteModel)
+  @assert eltype(local_views(model)) <: PolytopalDiscreteModel
+  perm = map(partition(get_cell_gids(model))) do ids
+    vcat(own_to_local(ids), ghost_to_local(ids))
+  end
+  cell_gids = GridapDistributed.restrict_gids(get_cell_gids(model), perm)
+  grids, topos = map(local_views(model), perm) do model, perm
+    grid = Geometry.restrict(get_grid(model), perm)
+    topo = PolytopalGridTopology(
+      get_node_coordinates(grid), get_cell_node_ids(grid), get_polytopes(grid)
+    )
+    return grid, topo
+  end |> tuple_of_arrays
+
+  topo = GridapDistributed.DistributedGridTopology(topos, cell_gids)
+  GridapDistributed._setup_consistent_faces!(topo)
+
+  labels = local_views(FaceLabeling(topo))
+  models = map(PolytopalDiscreteModel, grids, topos, labels)
+  return DistributedDiscreteModel(models, topo.face_gids)
+end

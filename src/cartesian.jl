@@ -49,12 +49,8 @@ function cartesian_model_hierarchy(ranks::AbstractArray,np::Tuple,domain::Tuple,
 
   pcells = map(ranks) do rank
     pcells = Vector{Table}(undef,nlevs-1)
-
-    nc = nf .÷ m
-    pcells[1] = mesh_partition_cartesian(rank,np,nc,m)
-    
-    nc = local_n(rank,np,nc)
-    for lev in nlevs-1:-1:2
+    nc = local_n(rank,np,nf)
+    for lev in nlevs-1:-1:1
       nc = nc .÷ m
       pcells[lev] = mesh_partition_cartesian(nc,m)
     end
@@ -63,9 +59,37 @@ function cartesian_model_hierarchy(ranks::AbstractArray,np::Tuple,domain::Tuple,
   
   fmodel = PolytopalDiscreteModel(
     CartesianDiscreteModel(ranks,np,domain,nf)
-  )
+  ) |> reorder_model
   return model_hierarchy_by_coarsening(fmodel, pcells)
 end
+
+# NOTE: This version does not reorder the cells of the fine model to be owned then ghost
+# As a consequence, the physical orientation of faces might differ between fine and coarse models
+# for those faces at processor boundaries (which are both fine and coarse). This causes issues 
+# with the prolongation operators. 
+#
+# function cartesian_model_hierarchy(ranks::AbstractArray,np::Tuple,domain::Tuple,nc::Tuple,nlevs::Integer,m::Integer=2)
+#   nf = nc .* (m .^ (nlevs-1))
+# 
+#   pcells = map(ranks) do rank
+#     pcells = Vector{Table}(undef,nlevs-1)
+# 
+#     nc = nf .÷ m
+#     pcells[1] = mesh_partition_cartesian(rank,np,nc,m)
+#     
+#     nc = local_n(rank,np,nc)
+#     for lev in nlevs-1:-1:2
+#       nc = nc .÷ m
+#       pcells[lev] = mesh_partition_cartesian(nc,m)
+#     end
+#     return Tuple(pcells)
+#   end |> tuple_of_arrays
+#   
+#   fmodel = PolytopalDiscreteModel(
+#     CartesianDiscreteModel(ranks,np,domain,nf)
+#   )
+#   return model_hierarchy_by_coarsening(fmodel, pcells)
+# end
 
 """
     mesh_partition_cartesian(nc::Tuple, m::Integer=2)
