@@ -102,3 +102,64 @@ function reorder_model(model::DistributedDiscreteModel)
   models = map(PolytopalDiscreteModel, grids, topos, labels)
   return DistributedDiscreteModel(models, topo.face_gids)
 end
+
+# Find bad cells (measure < threshold * median) and aggregate them 
+# with the largest neighbor
+function aggregate_bad_cells(model; threshold=0.1)
+  D = num_cell_dims(model)
+
+  topo = get_grid_topology(model)
+  G = Geometry.compute_graph(topo, D, D-1; self_loops=false)
+  cell_measures = Arrays.lazy_collect(get_cell_measure(Triangulation(model)))
+  cell_isbad = map((<)(threshold*median(cell_measures)), cell_measures)
+
+  nc = num_cells(model)
+  cell_to_parent = zeros(Int32, nc)
+  for cell in 1:nc
+    if cell_isbad[cell]
+      nbors = view(rowvals(G), nzrange(G, cell))
+      _, imax = findmax(view(cell_measures, nbors))
+      cell_to_parent[cell] = nbors[imax]
+    else
+      cell_to_parent[cell] = cell
+    end
+    if cell_isbad[cell_to_parent[cell]]
+      nbors = rowvals(G)[nzrange(G, cell)]
+      #println("cell = $(cell), nbors = $(nbors), meas = $(cell_measures[nbors]), parent = $(cell_to_parent[cell])")
+      @assert false "Bad cell $(cell) has no good neighbor!"
+    end
+  end
+
+  agg_to_cells = Arrays.remove_empty_entries!(
+    Arrays.inverse_table(cell_to_parent)
+  )
+  foreach(c -> sort!(dataview(agg_to_cells, c)), eachindex(agg_to_cells))
+  ptopo = PatchTopology(topo, agg_to_cells)
+  return Gridap.Adaptivity.coarsen(model, ptopo)
+end
+
+# Split disconnected patches into connected components
+# and returns the new patch_cells
+function split_disconnected_patches(model, patch_cells)
+  topo = get_grid_topology(model)
+  D = num_cell_dims(topo)
+  cell_to_facets = get_faces(topo,D,D-1)
+  facet_to_cells = get_faces(topo,D-1,D)
+
+  n_patches = length(patch_cells)
+  cell_to_patch = Arrays.flatten_partition(patch_cells, num_cells(model))
+
+  cache = array_cache(patch_cells)
+  for patch in eachindex(patch_cells)
+    cells = getindex!(cache, patch_cells, patch)
+    G  = Graph(Geometry.compute_graph(cells, cell_to_facets, facet_to_cells))
+    CC = connected_components(G)
+    # First component keeps the original patch index
+    for I in CC[2:end]
+      n_patches += 1
+      cell_to_patch[cells[I]] .= n_patches
+    end
+  end
+
+  return Arrays.inverse_table(cell_to_patch)
+end
