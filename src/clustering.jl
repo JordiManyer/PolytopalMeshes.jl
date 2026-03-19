@@ -3,7 +3,16 @@
     clustering_model(model::DiscreteModel, θ::Real; method = :metis, kwargs...)
     clustering_model(model::DiscreteModel, m::Integer; method = :metis, kwargs...)
 
-Available methods: :metis, :hierarchical, :kmeans, :kmedoid
+Coarsen `model` into a `PolytopalDiscreteModel` by agglomerating cells. Returns
+`(cmodel, ptopo)`.
+
+When given a ratio `θ ∈ (0, 1)`, the target number of coarse cells is
+`⌈n^(1/D) · θ⌉^D` where `n` is the fine cell count and `D` the spatial dimension.
+When given an integer `m`, exactly `m` coarse cells are requested.
+
+`method` selects the agglomeration algorithm: `:metis` (graph partitioning), `:hierarchical`
+(agglomerative clustering), `:kmeans`, or `:kmedoid`. Additional `kwargs` are forwarded to
+the underlying partition function.
 """
 function clustering_model(fmodel, args...; kwargs...)
   patch_cells = mesh_partition_clustering(fmodel, args...; kwargs...)
@@ -12,6 +21,20 @@ function clustering_model(fmodel, args...; kwargs...)
   return cmodel, ptopo
 end
 
+"""
+    clustering_model_hierarchy(fmodel, nlevs::Integer, θ::Real; kwargs...)
+
+Build a `nlevs`-level coarsening hierarchy by repeatedly agglomerating `fmodel` with
+coarsening ratio `θ` at each level. `kwargs` are forwarded to `mesh_partition_clustering`.
+Returns `(models, ptopos, glues)`.
+
+# Arguments
+- `fmodel`: the starting (finest) `DiscreteModel`.
+- `nlevs`: total number of levels, including the fine model.
+- `θ ∈ (0, 1)`: coarsening ratio applied at each level; the target coarse-cell count is
+  `⌈n^(1/D) · θ⌉^D` where `n` is the current level's cell count.
+- `kwargs`: forwarded to `mesh_partition_clustering` (e.g. `method = :kmeans`).
+"""
 function clustering_model_hierarchy(fmodel, nlevs::Integer, θ::Real; kwargs...)
   models = Vector{Any}(undef,nlevs)
   glues  = Vector{Any}(undef,nlevs-1)
@@ -56,6 +79,8 @@ function mesh_partition_clustering(model::DiscreteModel, m::Integer; method = :m
     mesh_partition_kmeans(model, m; kwargs...)
   elseif method == :kmedoid
     mesh_partition_kmedoid(model, m; kwargs...)
+  elseif method == :rtree
+    mesh_partition_rtree(model, m; kwargs...)   # m = extraction_level
   else
     error("Unknown agglomeration method: $method")
   end
@@ -73,6 +98,12 @@ end
 
 # Metis.jl
 
+"""
+    mesh_partition_metis(model::DiscreteModel, m; alg = :RECURSIVE)
+
+Partition the cells of `model` into `m` groups using METIS graph partitioning on the
+cell-adjacency graph. `alg` is passed directly to `Metis.partition`.
+"""
 function mesh_partition_metis(
   model::DiscreteModel, m;
   alg = :RECURSIVE
@@ -86,6 +117,13 @@ end
 
 # Clustering.jl
 
+"""
+    mesh_partition_hierarchical(model::DiscreteModel, m; points, dist, linkage, branchorder)
+
+Partition cells into `m` groups by agglomerative hierarchical clustering on `points`
+(default: cell centroids) with the given pairwise `dist` function. `linkage` and
+`branchorder` are forwarded to `Clustering.hclust`.
+"""
 function mesh_partition_hierarchical(
   model::DiscreteModel, m; 
   points = get_cell_centroids(model), 
@@ -97,8 +135,15 @@ function mesh_partition_hierarchical(
   return Arrays.inverse_table(cutree(H; k = m), m)
 end
 
+"""
+    mesh_partition_kmeans(model::DiscreteModel, m; points, init, weights, maxiter, display)
+
+Partition cells into `m` groups via k-means clustering on `points` (default: cell
+centroids). Pass `weights = :meas` to weight clusters by cell measure. Other keyword
+arguments are forwarded to `Clustering.kmeans`.
+"""
 function mesh_partition_kmeans(
-  model::DiscreteModel, m; 
+  model::DiscreteModel, m;
   points = get_cell_centroids(model),
   init = :kmpp, weights = nothing, 
   maxiter=100, display=:iter
@@ -111,8 +156,15 @@ function mesh_partition_kmeans(
   return Arrays.inverse_table(assignments(R),m)
 end
 
+"""
+    mesh_partition_kmedoid(model::DiscreteModel, m; points, dist, init, maxiter, display)
+
+Partition cells into `m` groups via k-medoids clustering. Proximity is determined by `dist`
+applied to `points` (default: Euclidean distance between cell centroids). Other keyword
+arguments are forwarded to `Clustering.kmedoids`.
+"""
 function mesh_partition_kmedoid(
-  model::DiscreteModel, m; 
+  model::DiscreteModel, m;
   points = get_cell_centroids(model),
   dist = (u,v) -> sqrt((u-v) ⋅ (u-v)),
   init = :kmpp, 

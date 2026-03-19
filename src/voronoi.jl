@@ -4,6 +4,13 @@
 """
     voronoi(domain::Tuple, nc::Tuple)
     voronoi(ranks::AbstractArray, np::Tuple, domain::Tuple, nc::Tuple)
+
+Construct a Voronoi mesh on `domain` using `prod(nc)` generators placed at the vertices of
+a simplexified `nc`-cell Cartesian grid. Extends `Gridap.Geometry.voronoi`.
+
+The distributed variant distributes the resulting mesh across MPI `ranks` in a `np` process
+grid using a uniform cell-to-rank assignment. For smoother subdomain boundaries see
+`distributed_voronoi`.
 """
 function Geometry.voronoi(domain::Tuple,nc::Tuple)
   base_model = simplexify(CartesianDiscreteModel(domain,nc))
@@ -25,6 +32,11 @@ end
 
 """
     distributed_voronoi(ranks::AbstractArray, np::Tuple, domain::Tuple, nc::Tuple; refinement_method=:simplexify)
+
+Build a distributed Voronoi mesh with smoother subdomain boundaries than `voronoi(ranks,...)`.
+Each MPI rank independently builds the Voronoi cells from the fine cells it owns after a
+Cartesian refinement, then the per-rank meshes are assembled into a single globally
+consistent polytopal model and distributed across `ranks`.
 """
 function distributed_voronoi(
   ranks::AbstractArray,np::Tuple,domain::Tuple,nc::Tuple; 

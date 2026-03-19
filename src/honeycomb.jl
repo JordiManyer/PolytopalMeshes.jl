@@ -2,6 +2,14 @@
 """
     honeycomb_model(domain::Tuple, nc::Tuple, m::Integer=2)
     honeycomb_model(ranks::AbstractArray, np::Tuple, domain::Tuple, nc::Tuple, m::Integer=2)
+
+Create a 2D honeycomb (hexagonal) polytopal mesh on `domain`. An underlying Cartesian fine
+mesh of `(1 + 2m) .* nc` cells is partitioned into `prod(nc)` hexagonal patches by
+assigning each fine cell to its nearest honeycomb center via graph distance. Returns
+`(cmodel, ptopo)`. Only implemented in 2D.
+
+The distributed variant distributes the fine mesh across MPI `ranks` in a `np` process grid,
+computing the partitioning locally per rank.
 """
 function honeycomb_model(domain::Tuple, nc::Tuple, m::Integer=2)
   @notimplementedif length(nc) != 2 "Honeycomb model is only implemented in 2D"
@@ -64,6 +72,17 @@ function honeycomb_roots_2d(nf::Tuple, nc::Tuple, m::Integer=2)
   sort!(roots)
 end
 
+"""
+    mesh_partition_by_distance(model::DiscreteModel, roots::Vector{<:Integer})
+    mesh_partition_by_distance(model::DiscreteModel, roots::Vector{<:Point})
+
+Partition the cells of `model` into `length(roots)` patches by assigning each cell to the
+nearest root. When `roots` contains cell indices, proximity is measured by graph distance
+(number of shared-facet hops) using a Dijkstra-style BFS, with tie-breaking in favour of
+the smaller patch. When `roots` contains `Point` coordinates, proximity is the Euclidean
+distance between cell centroids and root points. Returns a `Table` mapping patch index to
+cell indices.
+"""
 function mesh_partition_by_distance(
   model::DiscreteModel, roots::Vector{<:Integer}
 )

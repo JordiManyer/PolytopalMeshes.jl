@@ -36,6 +36,10 @@ end
 
 """
     reptile_refinement(model::DiscreteModel, rr)
+
+Apply one level of rep-tile refinement to `model` using the refinement rule `rr`. Each cell
+is subdivided into self-similar children according to `rr`. Returns an `AdaptedDiscreteModel`
+that wraps the refined `PolytopalDiscreteModel` together with the parent–child `AdaptivityGlue`.
 """
 function reptile_refinement(model::DiscreteModel, rr)
   topo = get_grid_topology(model)
@@ -125,6 +129,10 @@ end
 
 """
     LReptileMeasure(trian::Triangulation, qdegree)
+
+Build an integration `Measure` for an L-reptile triangulation `trian` using
+`LReptileQuadrature` at the given polynomial degree. Supports both serial and distributed
+triangulations.
 """
 LReptileMeasure(trian::Triangulation, qdegree) = Measure(trian,LReptileQuadrature(trian, qdegree))
 function LReptileMeasure(trian::DistributedTriangulation,qdegree)
@@ -143,6 +151,11 @@ end
 """
     LReptileQuadrature(p, args...; kwargs...)
     LReptileQuadrature(trian::Triangulation, args...; kwargs...)
+
+Build a quadrature rule for an L-reptile polygon `p` by decomposing it into sub-triangles
+and applying a standard tensor-product quadrature of the requested degree. When called on a
+`Triangulation`, returns one quadrature per cell. `args` and `kwargs` are forwarded to
+`Gridap.Quadrature`.
 """
 function LReptileQuadrature(p,args...; kwargs...)
   vertices = get_vertex_coordinates(p)
@@ -167,6 +180,9 @@ end
 
 """
     LReptileModel()
+
+Create a two-cell base mesh of L-shaped (L-reptile) polygons that tiles the unit square.
+Used as the starting model for `reptile_model_hierarchy`.
 """
 function LReptileModel()
   function transform(x)
@@ -193,6 +209,13 @@ end
 """
     reptile_model_hierarchy(nl::Integer, l0::Integer)
     reptile_model_hierarchy(ranks::AbstractArray, np::Integer, nl::Integer, l0::Integer)
+
+Build an `nl`-level self-similar hierarchy of L-reptile meshes. `l0` refinements are applied
+to the base `LReptileModel` before the hierarchy begins, setting the coarsest level resolution.
+The hierarchy then refines `nl - 1` further times to produce the finest level.
+
+The distributed variant distributes the hierarchy across MPI `ranks` arranged in a `np`-way
+partition using METIS. Returns `(models, ptopos, glues)`.
 """
 function reptile_model_hierarchy(args...)
   _, fmodel, pcells = reptile_refinement_hierarchy(args...)

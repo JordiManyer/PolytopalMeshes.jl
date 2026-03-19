@@ -24,6 +24,13 @@ function convert_and_coarsen(model,ptopo)
   )
 end
 
+"""
+    model_hierarchy_by_coarsening(model, patch_cells)
+
+Build a multi-level model hierarchy by successively coarsening `model` using the sequence of
+patch-cell tables in `patch_cells`. The first entry coarsens the finest model, and so on.
+Returns `(models, ptopos, glues)` where `length(models) == length(patch_cells) + 1`.
+"""
 function model_hierarchy_by_coarsening(
   model, patch_cells
 )
@@ -103,8 +110,13 @@ function reorder_model(model::DistributedDiscreteModel)
   return DistributedDiscreteModel(models, topo.face_gids)
 end
 
-# Find bad cells (measure < threshold * median) and aggregate them 
-# with the largest neighbor
+"""
+    aggregate_bad_cells(model; threshold = 0.1)
+
+Merge cells whose measure is below `threshold` times the median cell measure with their
+largest-area neighbor. Returns a coarsened model with undersized cells eliminated. Raises
+an assertion error if a bad cell has no good-quality neighbor.
+"""
 function aggregate_bad_cells(model; threshold=0.1)
   D = num_cell_dims(model)
 
@@ -138,8 +150,14 @@ function aggregate_bad_cells(model; threshold=0.1)
   return Gridap.Adaptivity.coarsen(model, ptopo)
 end
 
-# Split disconnected patches into connected components
-# and returns the new patch_cells
+"""
+    split_disconnected_patches(model, patch_cells)
+
+Split any topologically disconnected patch in `patch_cells` into separate connected
+components. New patches are appended at the end of the table; the original patch indices
+are preserved for the first (largest) component of each split patch. Returns an updated
+patch-cell `Table`.
+"""
 function split_disconnected_patches(model, patch_cells)
   topo = get_grid_topology(model)
   D = num_cell_dims(topo)

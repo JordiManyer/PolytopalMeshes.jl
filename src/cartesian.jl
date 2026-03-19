@@ -2,6 +2,14 @@
 """
     cartesian_model(domain::Tuple, nc::Tuple, m::Integer=2)
     cartesian_model(ranks::AbstractArray, np::Tuple, domain::Tuple, nc::Tuple, m::Integer=2)
+
+Create a polytopal coarse model by partitioning a Cartesian fine mesh into `nc` patches,
+each spanning `m` fine cells per direction. Returns `(cmodel, ptopo)` where `cmodel` is
+the coarsened `PolytopalDiscreteModel` and `ptopo` is the `PatchTopology` encoding the
+parent–child relationship between coarse and fine cells.
+
+The distributed variant distributes the fine mesh across MPI `ranks` arranged in a `np`
+process grid, performing the partitioning locally on each rank.
 """
 function cartesian_model(domain::Tuple, nc::Tuple, m::Integer=2)
   nf = nc .* m
@@ -26,8 +34,12 @@ function cartesian_model(ranks::AbstractArray, np::Tuple, domain::Tuple, nc::Tup
 end
 
 """
-    cartesian_model_hierarchy(domain::Tuple, nc::Tuple, nlevs::Integer)
-    cartesian_model_hierarchy(ranks::AbstractArray, np::Tuple, domain::Tuple, nc::Tuple, nlevs::Integer)
+    cartesian_model_hierarchy(domain::Tuple, nc::Tuple, nlevs::Integer, m::Integer=2)
+    cartesian_model_hierarchy(ranks::AbstractArray, np::Tuple, domain::Tuple, nc::Tuple, nlevs::Integer, m::Integer=2)
+
+Build a `nlevs`-level Cartesian coarsening hierarchy. The finest mesh has
+`nc .* m^(nlevs-1)` cells per direction and is successively coarsened by factor `m`
+at each level, ending at `nc` coarse cells. Returns `(models, ptopos, glues)`.
 """
 function cartesian_model_hierarchy(domain::Tuple,nc::Tuple,nlevs::Integer,m::Integer=2)
   nf = nc
@@ -95,6 +107,10 @@ end
     mesh_partition_cartesian(nc::Tuple, m::Integer=2)
     mesh_partition_cartesian(rank::Integer, np::Tuple, nc::Tuple, m::Integer=2)
     mesh_partition_cartesian(ranks::AbstractArray, np::Tuple, nc::Tuple, m::Integer=2)
+
+Return the patch-cell `Table` for a structured Cartesian partition: each of the `prod(nc)`
+patches collects the `m^D` fine cells that lie in the corresponding coarse cell block.
+The distributed variants map global fine-cell indices to local IDs on each rank.
 """
 function mesh_partition_cartesian(nc::Tuple,m::Integer=2)
   nf = map(s -> s * m, nc)
