@@ -18,6 +18,18 @@ end
   include("test_reptiles.jl")
 end
 
+@testset "Uniform Partitions" begin
+  include("test_uniform.jl")
+end
+
+@testset "Distance Matrices" begin
+  include("test_distances.jl")
+end
+
 @testset "Clustering" begin
   include("test_clustering.jl")
+end
+
+@testset "RTree Agglomeration" begin
+  include("test_rtree.jl")
 end

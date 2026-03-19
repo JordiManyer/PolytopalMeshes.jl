@@ -51,4 +51,12 @@ export uniform_model
 export mesh_partition_uniform
 include("uniform.jl")
 
+export mesh_partition_rtree, rtree_model, rtree_model_hierarchy
+export uniformity_factor, circle_ratio, box_ratio, overlap_factor
+include("TreeAgglomeration/mbr.jl")
+include("TreeAgglomeration/rtree.jl")
+include("TreeAgglomeration/agglomeration.jl")
+include("TreeAgglomeration/hierarchy.jl")
+include("TreeAgglomeration/quality.jl")
+
 end
