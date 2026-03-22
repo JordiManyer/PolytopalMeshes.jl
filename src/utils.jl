@@ -17,6 +17,13 @@ end
 
 # Model generation
 
+"""
+    convert_and_coarsen(model, ptopo)
+
+Wrap `model` in a `PolytopalDiscreteModel` and coarsen it using `ptopo` to produce the
+next-coarser model in a hierarchy. This is the shared final step of every mesh constructor
+in the library. Returns the coarsened `PolytopalDiscreteModel`.
+"""
 function convert_and_coarsen(model,ptopo)
   pmodel = PolytopalDiscreteModel(model)
   return Adaptivity.coarsen(
@@ -49,6 +56,14 @@ function model_hierarchy_by_coarsening(
   return models, ptopos, glues
 end
 
+"""
+    distribute_coarse_and_fine_models(ranks, np, cmodel, fmodel, pcells)
+
+Distribute a serial coarse–fine model pair across MPI `ranks`. The coarse model is
+partitioned with METIS into `np` parts; the resulting cell-to-rank assignment is propagated
+down the hierarchy through `pcells` to obtain a matching partition for the fine model.
+Returns `(distributed_cmodel, distributed_fmodel, distributed_pcells)`.
+"""
 function distribute_coarse_and_fine_models(
   ranks::AbstractArray, np::Integer, cmodel::DiscreteModel, fmodel::DiscreteModel, pcells::AbstractArray
 )

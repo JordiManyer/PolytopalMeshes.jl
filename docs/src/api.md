@@ -63,12 +63,53 @@ LReptileQuadrature
 LReptileMeasure
 ```
 
+## R-tree agglomeration
+
+Spatial agglomeration via a static bulk-loaded R-tree. Hierarchies produced by this
+strategy are **nested by construction**: every coarser level covers the finer one exactly.
+
+| `sort_order` | Description |
+|---|---|
+| `:coordinate` | Sort by MBR centre along a cycling axis (fast baseline) |
+| `:hilbert` | Sort by Hilbert-curve index (best spatial locality) |
+| `:bfs` | Grow connected patches via multi-source BFS (best connectivity) |
+
+| `split_alg` | Description |
+|---|---|
+| `:equal` | Equal-size cuts (fastest) |
+| `:max_spread` | Sort along the axis of maximum spread |
+| `:min_area` | Axis that minimises total child MBR area (R*-tree heuristic) |
+| `:min_overlap` | Like `:min_area`, then slides boundaries to minimise MBR overlap |
+
+```@docs
+rtree_model
+rtree_model_hierarchy
+mesh_partition_rtree
+PolytopalMeshes.extract_partition
+PolytopalMeshes.RTree
+PolytopalMeshes.RTreeConfig
+```
+
+## Quality metrics
+
+Per-cell and whole-mesh quality measures. All per-element values lie in `(0, 1]` with
+higher being better; `overlap_factor` returns a single scalar for the whole mesh.
+
+```@docs
+uniformity_factor
+circle_ratio
+box_ratio
+overlap_factor
+```
+
 ## Hierarchy utilities
 
 Lower-level tools for building and post-processing hierarchies.
 
 ```@docs
 PolytopalMeshes.model_hierarchy_by_coarsening
+PolytopalMeshes.convert_and_coarsen
+PolytopalMeshes.distribute_coarse_and_fine_models
 PolytopalMeshes.aggregate_bad_cells
 PolytopalMeshes.split_disconnected_patches
 ```

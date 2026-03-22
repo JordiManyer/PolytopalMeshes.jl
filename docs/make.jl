@@ -25,8 +25,13 @@ makedocs(
         "API"      => "api.md",
         "Examples" => [
             "examples/cartesian_hierarchy.md",
+            "examples/honeycomb_mesh.md",
+            "examples/voronoi_mesh.md",
             "examples/clustering_agglomeration.md",
+            "examples/uniform_partitioning.md",
             "examples/reptile_hierarchy.md",
+            "examples/rtree_agglomeration.md",
+            "examples/mesh_quality.md",
         ],
     ],
     checkdocs = :exports,

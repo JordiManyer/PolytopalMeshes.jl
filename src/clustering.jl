@@ -51,6 +51,22 @@ function clustering_model_hierarchy(fmodel, nlevs::Integer, θ::Real; kwargs...)
   return models, ptopos, glues
 end
 
+"""
+    mesh_partition_clustering(model::DiscreteModel, θ::Real; method = :metis, kwargs...)
+    mesh_partition_clustering(model::DiscreteModel, m::Integer; method = :metis, kwargs...)
+
+Compute a patch-cell `Table` for `model` using the chosen agglomeration algorithm.
+
+When given a ratio `θ ∈ (0, 1)`, the target number of coarse cells is
+`⌈n^(1/D) · θ⌉^D` where `n` is the fine cell count and `D` the spatial dimension.
+When given an integer `m`, exactly `m` coarse patches are requested.
+
+`method` selects the algorithm: `:metis`, `:hierarchical`, `:kmeans`, `:kmedoid`, or
+`:rtree`. Additional `kwargs` are forwarded to the corresponding low-level function.
+
+Connectivity of the resulting patches is not guaranteed; call `split_disconnected_patches`
+afterwards if topological connectivity is required.
+"""
 function mesh_partition_clustering(model::DiscreteModel, θ::Real; kwargs...)
   @assert 0 < θ < 1 "θ must be in (0,1)"
   D = num_cell_dims(model)
