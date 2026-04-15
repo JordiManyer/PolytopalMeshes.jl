@@ -84,13 +84,16 @@ function _build_tree(model::DiscreteModel;
                      build_alg::Symbol,
                      m::Union{Nothing,Int},
                      reinsert_fraction::Real,
-                     insertion_order::Symbol)
+                     insertion_order::Symbol,
+                     rg_kwargs)
   if build_alg == :bulk
     return RTree(model; M, sort_order, split_alg, connectivity)
   elseif build_alg == :rstar
     return RStarTree(model; M, m, reinsert_fraction, insertion_order)
+  elseif build_alg == :rgtree
+    return RGTree(model; M, m, reinsert_fraction, insertion_order, connectivity, rg_kwargs...)
   else
-    error("Unknown build_alg $(repr(build_alg)); valid options: (:bulk, :rstar)")
+    error("Unknown build_alg $(repr(build_alg)); valid options: (:bulk, :rstar, :rgtree)")
   end
 end
 
@@ -102,9 +105,10 @@ function mesh_partition_rtree(model::DiscreteModel, extraction_level::Int;
                                 build_alg    ::Symbol = :bulk,
                                 m            ::Union{Nothing,Int} = nothing,
                                 reinsert_fraction     ::Real = 0.3,
-                                insertion_order::Symbol = :hilbert)
+                                insertion_order::Symbol = :hilbert,
+                                rg_kwargs...)
   tree = _build_tree(model; M, sort_order, split_alg, connectivity,
-                     build_alg, m, reinsert_fraction, insertion_order)
+                     build_alg, m, reinsert_fraction, insertion_order, rg_kwargs)
   return extract_partition(tree, extraction_level)
 end
 
@@ -117,14 +121,16 @@ function mesh_partition_rtree(model::DistributedDiscreteModel, extraction_level:
                                 build_alg    ::Symbol = :bulk,
                                 m            ::Union{Nothing,Int} = nothing,
                                 reinsert_fraction     ::Real = 0.3,
-                                insertion_order::Symbol = :hilbert)
+                                insertion_order::Symbol = :hilbert,
+                                rg_kwargs...)
   gids = get_cell_gids(model)
   map(local_views(model), partition(gids)) do lmodel, lgids
     own_cells  = own_to_local(lgids)
     own_model  = Geometry.restrict(lmodel, own_cells)
     own_pcells = mesh_partition_rtree(own_model, extraction_level;
                                       M, sort_order, split_alg, connectivity,
-                                      build_alg, m, reinsert_fraction, insertion_order)
+                                      build_alg, m, reinsert_fraction, insertion_order,
+                                      rg_kwargs...)
     return Table(own_cells[own_pcells.data], own_pcells.ptrs)
   end
 end

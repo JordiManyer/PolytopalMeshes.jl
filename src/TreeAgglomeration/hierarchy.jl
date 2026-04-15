@@ -37,14 +37,19 @@ function rtree_model_hierarchy(model::DiscreteModel;
                                 build_alg    ::Symbol = :bulk,
                                 m            ::Union{Nothing,Int} = nothing,
                                 reinsert_fraction     ::Real = 0.3,
-                                insertion_order::Symbol = :hilbert)
+                                insertion_order::Symbol = :hilbert,
+                                rg_kwargs...)
   if build_alg == :rstar
     return _rstar_model_hierarchy_iterative(PolytopalDiscreteModel(model);
                                             M, m, reinsert_fraction, insertion_order)
+  elseif build_alg == :rgtree
+    return _rgtree_model_hierarchy_iterative(PolytopalDiscreteModel(model);
+                                             M, m, reinsert_fraction, insertion_order,
+                                             connectivity, rg_kwargs...)
   end
 
   tree = _build_tree(model; M, sort_order, split_alg, connectivity,
-                     build_alg, m, reinsert_fraction, insertion_order)
+                     build_alg, m, reinsert_fraction, insertion_order, rg_kwargs)
   L    = num_levels(tree)
 
   # Each coarsening step maps the *current level's* cell indices to the
@@ -70,6 +75,43 @@ function rtree_model_hierarchy(model::DiscreteModel;
   end
 
   return model_hierarchy_by_coarsening(PolytopalDiscreteModel(model), all_patch_cells)
+end
+
+function _rgtree_model_hierarchy_iterative(model;
+                                           M::Int,
+                                           m::Union{Nothing,Int},
+                                           reinsert_fraction::Real,
+                                           insertion_order::Symbol,
+                                           connectivity,
+                                           rg_kwargs...)
+  models = Any[model]
+  ptopos = Any[]
+  glues  = Any[]
+
+  while true
+    current = models[end]
+    tree = RGTree(current; M, m, reinsert_fraction, insertion_order, connectivity, rg_kwargs...)
+    num_levels(tree) < 2 && break
+
+    patch_cells = extract_partition(tree, 2)
+    patch_cells = split_disconnected_patches(current, patch_cells)
+    ptopo = PatchTopology(get_grid_topology(current), patch_cells)
+
+    if length(patch_cells) == num_cells(current)
+      break
+    end
+
+    cmodel, glue = coarsen(current, ptopo; return_glue = true)
+    if num_cells(cmodel) >= num_cells(current)
+      break
+    end
+
+    push!(ptopos, ptopo)
+    push!(glues, glue)
+    push!(models, cmodel)
+  end
+
+  return models, ptopos, glues
 end
 
 function _rstar_model_hierarchy_iterative(model;

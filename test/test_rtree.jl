@@ -65,6 +65,15 @@ end
   @test PolytopalMeshes.num_levels(tree) >= 2
 end
 
+@testset "RGTree construction — 2D Cartesian 8×8" begin
+  n = 8
+  model = CartesianDiscreteModel((0,1,0,1), (n,n))
+  tree  = PolytopalMeshes.RGTree(model; M = 4)
+
+  @test tree.n_cells == n^2
+  @test PolytopalMeshes.num_levels(tree) >= 2
+end
+
 # ===================================================================
 # Partition validity
 # ===================================================================
@@ -95,6 +104,42 @@ end
     @test is_cover(ftopo, patch_cells)
     @test is_disjoint(ftopo, patch_cells)
   end
+end
+
+@testset "mesh_partition_rtree (RGTree modes) — cover+disjoint" begin
+  n = 16
+  model = CartesianDiscreteModel((0,1,0,1), (n,n))
+  ftopo = get_grid_topology(model)
+
+  for mode in (:fast, :strict, :custom)
+    pc = mesh_partition_rtree(model, 2; M=4, build_alg=:rgtree, mode=mode)
+    @test is_cover(ftopo, pc)
+    @test is_disjoint(ftopo, pc)
+  end
+end
+
+@testset "mesh_partition_rtree (RGTree toggles) — cover+disjoint" begin
+  n = 16
+  fmodel = voronoi((0,1,0,1), (n,n))
+  ftopo  = get_grid_topology(fmodel)
+
+  pc = mesh_partition_rtree(
+    fmodel,
+    2;
+    M=4,
+    build_alg=:rgtree,
+    mode=:custom,
+    insertion_order=:connected_hilbert,
+    leaf_adjacency_policy=:hard,
+    split_connectivity_policy=:soft_edgecut,
+    reinsertion_policy=:connectivity_preserving,
+    choose_subtree_graph_penalty=true,
+    quality_proxy_penalty=true,
+    candidate_shortlist_k=3,
+    level_weight_schedule=:leaf_heavy,
+  )
+  @test is_cover(ftopo, pc)
+  @test is_disjoint(ftopo, pc)
 end
 
 # ===================================================================
