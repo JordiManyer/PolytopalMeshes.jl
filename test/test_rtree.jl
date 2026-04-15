@@ -4,6 +4,7 @@ using Test
 using Gridap
 using Gridap.Arrays, Gridap.Geometry, Gridap.ReferenceFEs
 using Gridap.Geometry: is_partition, is_cover, is_disjoint
+using Gridap.Geometry: get_patch_cells
 using Graphs
 
 using GridapDistributed, PartitionedArrays
@@ -55,6 +56,15 @@ end
   @test PolytopalMeshes.num_levels(tree) >= 2
 end
 
+@testset "RStarTree construction — 2D Cartesian 8×8" begin
+  n = 8
+  model = CartesianDiscreteModel((0,1,0,1), (n,n))
+  tree  = PolytopalMeshes.RStarTree(model; M = 4)
+
+  @test tree.n_cells == n^2
+  @test PolytopalMeshes.num_levels(tree) >= 2
+end
+
 # ===================================================================
 # Partition validity
 # ===================================================================
@@ -70,6 +80,20 @@ end
     patch_cells = mesh_partition_rtree(model, lev; M = 4)
     ptopo = Geometry.PatchTopology(ftopo, patch_cells)
     @test is_partition(ptopo)
+  end
+end
+
+@testset "mesh_partition_rtree (R*) — cover+disjoint" begin
+  n = 16
+  model  = CartesianDiscreteModel((0,1,0,1), (n,n))
+  tree   = PolytopalMeshes.RStarTree(model; M = 4)
+  L      = PolytopalMeshes.num_levels(tree)
+
+  ftopo  = get_grid_topology(model)
+  for lev in 2:L
+    patch_cells = mesh_partition_rtree(model, lev; M = 4, build_alg = :rstar)
+    @test is_cover(ftopo, patch_cells)
+    @test is_disjoint(ftopo, patch_cells)
   end
 end
 
@@ -287,6 +311,19 @@ end
   model = CartesianDiscreteModel((0,1,0,1), (n,n))
   models, ptopos, glues = rtree_model_hierarchy(model; M=4, sort_order=:hilbert)
   @test length(models) >= 2
+  for k in 1:length(models)-1
+    @test num_cells(models[k+1]) < num_cells(models[k])
+    @test is_partition(ptopos[k])
+  end
+end
+
+@testset "rtree_model_hierarchy — R* build" begin
+  n = 16
+  model = CartesianDiscreteModel((0,1,0,1), (n,n))
+  models, ptopos, glues = rtree_model_hierarchy(model; M=4, build_alg=:rstar)
+  @test length(models) >= 2
+  @test length(ptopos) == length(models) - 1
+  @test length(glues)  == length(models) - 1
   for k in 1:length(models)-1
     @test num_cells(models[k+1]) < num_cells(models[k])
     @test is_partition(ptopos[k])

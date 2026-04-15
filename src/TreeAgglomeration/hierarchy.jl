@@ -33,8 +33,18 @@ function rtree_model_hierarchy(model::DiscreteModel;
                                 M            ::Int    = 2^num_cell_dims(model),
                                 sort_order   ::Symbol = :coordinate,
                                 split_alg    ::Symbol = :equal,
-                                connectivity          = nothing)
-  tree = RTree(model; M, sort_order, split_alg, connectivity)
+                                connectivity          = nothing,
+                                build_alg    ::Symbol = :bulk,
+                                m            ::Union{Nothing,Int} = nothing,
+                                reinsert_fraction     ::Real = 0.3,
+                                insertion_order::Symbol = :hilbert)
+  if build_alg == :rstar
+    return _rstar_model_hierarchy_iterative(PolytopalDiscreteModel(model);
+                                            M, m, reinsert_fraction, insertion_order)
+  end
+
+  tree = _build_tree(model; M, sort_order, split_alg, connectivity,
+                     build_alg, m, reinsert_fraction, insertion_order)
   L    = num_levels(tree)
 
   # Each coarsening step maps the *current level's* cell indices to the
@@ -60,4 +70,40 @@ function rtree_model_hierarchy(model::DiscreteModel;
   end
 
   return model_hierarchy_by_coarsening(PolytopalDiscreteModel(model), all_patch_cells)
+end
+
+function _rstar_model_hierarchy_iterative(model;
+                                          M::Int,
+                                          m::Union{Nothing,Int},
+                                          reinsert_fraction::Real,
+                                          insertion_order::Symbol)
+  models = Any[model]
+  ptopos = Any[]
+  glues  = Any[]
+
+  while true
+    current = models[end]
+    tree = RStarTree(current; M, m, reinsert_fraction, insertion_order)
+    num_levels(tree) < 2 && break
+
+    patch_cells = extract_partition(tree, 2)
+    patch_cells = split_disconnected_patches(current, patch_cells)
+    ptopo = PatchTopology(get_grid_topology(current), patch_cells)
+
+    # Degenerate case guard: if no effective aggregation is possible, stop.
+    if length(patch_cells) == num_cells(current)
+      break
+    end
+
+    cmodel, glue = coarsen(current, ptopo; return_glue = true)
+    if num_cells(cmodel) >= num_cells(current)
+      break
+    end
+
+    push!(ptopos, ptopo)
+    push!(glues, glue)
+    push!(models, cmodel)
+  end
+
+  return models, ptopos, glues
 end

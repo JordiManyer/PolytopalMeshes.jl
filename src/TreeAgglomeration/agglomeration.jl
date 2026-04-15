@@ -76,26 +76,55 @@ Partition `model`'s cells via R-tree agglomeration at the given
 - `extraction_level = num_levels`  → maximum coarsening
 - `M`                              → max entries per tree node (default: 2^D)
 """
+function _build_tree(model::DiscreteModel;
+                     M::Int,
+                     sort_order::Symbol,
+                     split_alg::Symbol,
+                     connectivity,
+                     build_alg::Symbol,
+                     m::Union{Nothing,Int},
+                     reinsert_fraction::Real,
+                     insertion_order::Symbol)
+  if build_alg == :bulk
+    return RTree(model; M, sort_order, split_alg, connectivity)
+  elseif build_alg == :rstar
+    return RStarTree(model; M, m, reinsert_fraction, insertion_order)
+  else
+    error("Unknown build_alg $(repr(build_alg)); valid options: (:bulk, :rstar)")
+  end
+end
+
 function mesh_partition_rtree(model::DiscreteModel, extraction_level::Int;
-                               M            ::Int    = 2^num_cell_dims(model),
-                               sort_order   ::Symbol = :coordinate,
-                               split_alg    ::Symbol = :equal,
-                               connectivity          = nothing)
-  tree = RTree(model; M, sort_order, split_alg, connectivity)
+                                M            ::Int    = 2^num_cell_dims(model),
+                                sort_order   ::Symbol = :coordinate,
+                                split_alg    ::Symbol = :equal,
+                                connectivity          = nothing,
+                                build_alg    ::Symbol = :bulk,
+                                m            ::Union{Nothing,Int} = nothing,
+                                reinsert_fraction     ::Real = 0.3,
+                                insertion_order::Symbol = :hilbert)
+  tree = _build_tree(model; M, sort_order, split_alg, connectivity,
+                     build_alg, m, reinsert_fraction, insertion_order)
   return extract_partition(tree, extraction_level)
 end
 
 # Distributed: each rank builds its own local tree from its owned cells
 function mesh_partition_rtree(model::DistributedDiscreteModel, extraction_level::Int;
-                               M            ::Int    = 2^num_cell_dims(model),
-                               sort_order   ::Symbol = :coordinate,
-                               split_alg    ::Symbol = :equal,
-                               connectivity          = nothing)
+                                M            ::Int    = 2^num_cell_dims(model),
+                                sort_order   ::Symbol = :coordinate,
+                                split_alg    ::Symbol = :equal,
+                                connectivity          = nothing,
+                                build_alg    ::Symbol = :bulk,
+                                m            ::Union{Nothing,Int} = nothing,
+                                reinsert_fraction     ::Real = 0.3,
+                                insertion_order::Symbol = :hilbert)
   gids = get_cell_gids(model)
   map(local_views(model), partition(gids)) do lmodel, lgids
     own_cells  = own_to_local(lgids)
     own_model  = Geometry.restrict(lmodel, own_cells)
-    own_pcells = mesh_partition_rtree(own_model, extraction_level; M, sort_order, split_alg, connectivity)
+    own_pcells = mesh_partition_rtree(own_model, extraction_level;
+                                      M, sort_order, split_alg, connectivity,
+                                      build_alg, m, reinsert_fraction, insertion_order)
     return Table(own_cells[own_pcells.data], own_pcells.ptrs)
   end
 end

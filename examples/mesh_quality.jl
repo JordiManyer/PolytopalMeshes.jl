@@ -61,31 +61,7 @@ println("After aggregate_bad_cells (threshold=0.2): $(num_cells(cmodel_clean)) c
 
 # ## Comparing quality metrics across methods
 #
-# The four exported metrics all return per-cell scalars in `(0, 1]` (higher = better),
-# except `overlap_factor` which is a single scalar for the whole mesh.
-#
-# | Metric              | Formula                        | Meaning                        |
-# |---------------------|-------------------------------|-------------------------------|
-# | `uniformity_factor` | `diam(K) / max_K diam(K)`     | How uniformly sized cells are |
-# | `circle_ratio`      | `min_side / max_side` of MBR  | Aspect-ratio quality           |
-# | `box_ratio`         | `|K| / |MBR(K)|`              | How well cell fills its bbox  |
-# | `overlap_factor`    | `|Ω| / Σ|MBR(K_i)|`          | How tightly bboxes cover Ω    |
-
-function print_quality(label, model)
-    uf = uniformity_factor(model)
-    cr = circle_ratio(model)
-    br = box_ratio(model)
-    of = overlap_factor(model)
-    mean_uf = round(sum(uf) / length(uf); digits = 3)
-    mean_cr = round(sum(cr) / length(cr); digits = 3)
-    mean_br = round(sum(br) / length(br); digits = 3)
-    of_r    = round(of; digits = 3)
-    println("  $label")
-    println("    uniformity_factor: mean=$mean_uf, min=$(round(minimum(uf);digits=3))")
-    println("    circle_ratio:      mean=$mean_cr, min=$(round(minimum(cr);digits=3))")
-    println("    box_ratio:         mean=$mean_br, min=$(round(minimum(br);digits=3))")
-    println("    overlap_factor:    $of_r")
-end
+# `benchmark_mesh_quality` runs all metrics and prints a compact summary.
 
 println("\nQuality comparison (θ = 0.5 coarsening of the Voronoi fine mesh):")
 θ = 0.5
@@ -93,7 +69,7 @@ println("\nQuality comparison (θ = 0.5 coarsening of the Voronoi fine mesh):")
 # coarsening; its quality is demonstrated separately in rtree_agglomeration.jl.
 for method in (:metis, :kmeans, :hierarchical)
     cm, _ = clustering_model(fmodel, θ; method)
-    print_quality("method=$method ($(num_cells(cm)) cells)", cm)
+    benchmark_mesh_quality(cm; title = "method=$method ($(num_cells(cm)) cells)")
 end
 
 # ## Honeycomb as a quality baseline
@@ -102,4 +78,4 @@ end
 # can serve as a reference when evaluating agglomeration results.
 
 cmodel_hc, _ = honeycomb_model(domain, (4, 4), 2)
-print_quality("honeycomb (4×4, m=2) — $(num_cells(cmodel_hc)) cells", cmodel_hc)
+benchmark_mesh_quality(cmodel_hc; title = "honeycomb (4×4, m=2) — $(num_cells(cmodel_hc)) cells")

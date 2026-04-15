@@ -68,6 +68,10 @@ LReptileMeasure
 Spatial agglomeration via a static bulk-loaded R-tree. Hierarchies produced by this
 strategy are **nested by construction**: every coarser level covers the finer one exactly.
 
+R*-tree construction is also available via `build_alg = :rstar` in
+`mesh_partition_rtree` / `rtree_model_hierarchy`, and directly through
+`RStarTree(model; ...)`.
+
 | `sort_order` | Description |
 |---|---|
 | `:coordinate` | Sort by MBR centre along a cycling axis (fast baseline) |
@@ -88,6 +92,7 @@ mesh_partition_rtree
 PolytopalMeshes.extract_partition
 PolytopalMeshes.RTree
 PolytopalMeshes.RTreeConfig
+RStarTree
 ```
 
 ## Quality metrics
@@ -100,6 +105,10 @@ uniformity_factor
 circle_ratio
 box_ratio
 overlap_factor
+MeshQualitySummary
+mesh_quality_summary
+print_mesh_quality
+benchmark_mesh_quality
 ```
 
 ## Hierarchy utilities

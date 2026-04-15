@@ -53,18 +53,9 @@ for (lev, model) in enumerate(models)
     println("  Level $lev: $(num_cells(model)) cells")
 end
 
-# ## Quality metrics
+# ## Quality benchmarks
 #
-# PolytopalMeshes exports several per-cell quality measures that can be
-# used to compare different agglomeration strategies.
-
-uf = uniformity_factor(cmodel)
-cr = circle_ratio(cmodel)
-br = box_ratio(cmodel)
-of = overlap_factor(cmodel)
+# Use the generic quality benchmark driver to print a concise report.
 
 println("\nQuality metrics (R-tree, extraction level 2):")
-println("  Uniformity factor: min=$(round(minimum(uf),digits=3)), mean=$(round(sum(uf)/length(uf),digits=3))")
-println("  Circle ratio:      min=$(round(minimum(cr),digits=3)), mean=$(round(sum(cr)/length(cr),digits=3))")
-println("  Box ratio:         min=$(round(minimum(br),digits=3)), mean=$(round(sum(br)/length(br),digits=3))")
-println("  Overlap factor:    $(round(of, digits=3))")
+benchmark_mesh_quality(cmodel; title = "R-tree level 2 quality")

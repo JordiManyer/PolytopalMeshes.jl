@@ -6,7 +6,7 @@ polygonal and polyhedral meshes, built on top of [Gridap.jl](https://github.com/
 ## Overview
 
 The package provides several mesh generation strategies — structured (Cartesian, Honeycomb),
-unstructured (Voronoi), self-similar (Rep-Tile), and agglomeration-based (Clustering, Uniform)
+unstructured (Voronoi), self-similar (Rep-Tile), and agglomeration-based (Clustering, Uniform, R-tree/R*-tree)
 — together with their MPI-distributed counterparts. All strategies follow the same three-step
 workflow:
 
@@ -34,6 +34,10 @@ models, ptopos, glues = cartesian_model_hierarchy((0,1,0,1), (4,4), 4)
 # Voronoi mesh agglomerated with METIS
 fmodel = voronoi((0,1,0,1), (8,8))
 cmodel, ptopo = clustering_model(fmodel, 0.5; method = :metis)
+
+# R-tree agglomeration + quality benchmark
+rmodel, _ = rtree_model(fmodel, 2; build_alg = :rstar)
+benchmark_mesh_quality(rmodel; title = "R*-tree quality")
 ```
 
 See the [Examples](@ref) section for annotated runnable scripts and the [API](@ref) for the

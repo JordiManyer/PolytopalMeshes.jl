@@ -33,3 +33,7 @@ end
 @testset "RTree Agglomeration" begin
   include("test_rtree.jl")
 end
+
+@testset "Mesh Quality" begin
+  include("test_quality.jl")
+end
