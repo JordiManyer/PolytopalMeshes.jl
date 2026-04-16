@@ -27,5 +27,7 @@ Manifest*.toml
 LocalPreferences.toml
 JuliaLocalPreferences.toml
 
+notes/
 data/*
 CLAUDE.md
+AGENTS.md
